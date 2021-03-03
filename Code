@@ -1,0 +1,154 @@
+package graficos;
+
+import java.awt.Canvas;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.image.BufferStrategy;
+import java.awt.image.BufferedImage;
+
+import javax.swing.JFrame;
+
+public class Game extends Canvas implements Runnable{
+	
+	public static JFrame frame;
+	private boolean isRunning = true;
+	public Thread thread;
+	private final int WIDTH = 240;
+	private final int HEIGHT = 160;
+	private final int SCALE = 3;
+	
+	private BufferedImage image;
+	
+	private Spritesheet sheet;
+	private BufferedImage[] player;
+	private int frames = 0;
+	private int maxFrames = 20;
+	private int curAnimation = 0,maxAnimation = 2;
+	
+/*Inicialização do game*/
+	public Game() {
+		sheet = new Spritesheet("/spritesheet.png");
+		player = new BufferedImage[2];
+		player[0] = sheet.getSprite(0, 0, 16, 16);
+		player[1] = sheet.getSprite(16, 0, 16, 16);
+		setPreferredSize(new Dimension(WIDTH*SCALE, HEIGHT*SCALE));
+		initFrame();
+		image = new BufferedImage(WIDTH,HEIGHT,BufferedImage.TYPE_INT_RGB);
+	}
+	
+	public void initFrame(){
+		frame = new JFrame("Janela de Game!");
+		frame.add(this);
+		frame.setResizable(false);
+		frame.pack();
+		frame.setLocationRelativeTo(null);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setVisible(true);
+	}
+	
+	public synchronized void start() {
+		thread = new Thread(this);
+		isRunning = true;
+		thread.start();
+	}
+	
+	public synchronized void stop() {
+		isRunning = false;
+		try {
+			thread.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void tick() {
+		frames++;
+		if(frames>maxFrames) {
+			frames = 0;
+			curAnimation++;
+			if(curAnimation >= maxAnimation) {
+				curAnimation = 0;
+			}
+		}
+	}
+	
+
+	public void render() {
+		BufferStrategy bs = this.getBufferStrategy();
+		if(bs == null) {
+			this.createBufferStrategy(3);
+			return;
+		}
+		Graphics g = image.getGraphics();
+		g.setColor(new Color(0,175,80));
+		g.fillRect(0,0,WIDTH,HEIGHT);
+		g.setColor(Color.WHITE);
+		g.fillRect(0, 0, 240, 160);
+		g.setColor(Color.RED);
+		g.fillRect(230, 10, 10,160);
+		g.setColor(Color.RED);
+		g.fillRect(00, 00, 10,150);
+		g.setColor(Color.BLUE);
+		g.fillRect(70, 50, 15, 0);
+		g.setColor(Color.BLUE);
+		g.fillRect(0, 150, 240, 10);
+		g.setColor(Color.BLUE);
+		g.fillRect(0, 0, 240, 10);
+		g.setFont(new Font("Arial", Font.BOLD,20));
+		g.setColor(Color.BLACK);
+		g.drawString("Lulu", 99, 32);
+		g.setFont(new Font("Arial", Font.BOLD,10));
+		g.setColor(Color.BLACK);
+		g.drawString("A princesa destronada!", 65, 70);
+		
+		/*Renderização do game*/
+		Graphics2D g2 = (Graphics2D) g;
+		g2.drawImage(player[curAnimation], 115,40,null);
+		g2.rotate(Math.toRadians(0),90+8,90+8);
+		g2.setColor(new Color(0,0,0,180));
+
+		/***/
+		g.dispose();
+		g = bs.getDrawGraphics();
+		g.drawImage(image, 0, 0, WIDTH*SCALE, HEIGHT*SCALE, null);
+		bs.show();
+		}
+	
+
+	
+	public static void main(String[] args) {
+		Game game = new Game();
+		game.start();
+	}
+
+	public void run() {
+		long lastTime = System.nanoTime();
+		double amountOfTicks = 60.0;
+		double ns = 1000000000 / amountOfTicks;
+		double delta = 0;
+		int frames = 0;
+		double timer = System.currentTimeMillis();
+		while(isRunning) {
+			long now = System.nanoTime();
+			delta+= (now - lastTime) / ns;
+			lastTime = now;
+			if(delta>= 1) {
+				tick();
+				render();
+				frames++;
+				delta--;
+			}
+			if(System.currentTimeMillis() - timer >= 1000) {
+				System.out.println("FPS "+frames);
+				frames = 0;
+				timer+=1000;
+			}
+
+		}
+		
+		stop();
+	}
+}
